@@ -299,83 +299,138 @@ export class OutlinePanel {
     this.activeIndex = index;
     this.updateActiveHighlight();
 
-    const scrollContainer = this.adapter.getScrollContainer();
+    const isElementVisible = (el: HTMLElement) => {
+      return (
+        document.body.contains(el) &&
+        (el.offsetHeight > 0 || el.offsetWidth > 0 || el.getClientRects().length > 0)
+      );
+    };
 
-    // 尝试在页面中查找最新匹配的 live 节点（解决 SPA / React 重新渲染后 DOM 节点引用失效问题）
-    let targetEl: HTMLElement | null = document.body.contains(item.element) ? item.element : null;
+    // 尝试在页面中查找最新匹配的 live 节点（解决 SPA / React 重新渲染后 DOM 节点引用失效或尺寸变 0 的问题）
+    let targetEl: HTMLElement | null = isElementVisible(item.element) ? item.element : null;
 
     if (!targetEl) {
       const latestItems = this.adapter.getUserMessages();
       const matched = latestItems.find(
-        (latest) => latest.fullText === item.fullText || latest.text === item.text || latest.index === index
+        (latest) => latest.index === index || latest.fullText === item.fullText || latest.text === item.text
       );
-      if (matched && document.body.contains(matched.element)) {
+      if (matched && isElementVisible(matched.element)) {
         targetEl = matched.element;
         item.element = matched.element; // 更新缓存中的元素引用
       }
     }
 
-    if (targetEl && document.body.contains(targetEl)) {
-      // 1. 调用原生的 scrollIntoView
-      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const scrollContainer = this.adapter.getScrollContainer();
+
+    if (targetEl && isElementVisible(targetEl)) {
+      this.performScrollToElement(scrollContainer, targetEl);
       this.highlightElement(targetEl);
-
-      // 2. 如果存在显式滚动的父容器，计算 exact scrollTop 并双重保障触发滚动
-      if (scrollContainer instanceof HTMLElement) {
-        const containerRect = scrollContainer.getBoundingClientRect();
-        const elRect = targetEl.getBoundingClientRect();
-        const relativeTop = elRect.top - containerRect.top + scrollContainer.scrollTop;
-        const targetScrollTop = relativeTop - containerRect.height / 2 + elRect.height / 2;
-
-        scrollContainer.scrollTo({
-          top: Math.max(0, targetScrollTop),
-          behavior: 'smooth'
-        });
-      }
     } else {
       // 节点暂不在 DOM 中（虚拟列表回收），按估算比例触发滚动以让虚拟列表渲染节点
       let targetScrollTop = 0;
+      const isWindow = scrollContainer === window || scrollContainer === document.body || scrollContainer === document.documentElement;
+
+      const maxScroll = isWindow
+        ? Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) - window.innerHeight
+        : (scrollContainer as HTMLElement).scrollHeight - (scrollContainer as HTMLElement).clientHeight;
+
       if (index === 0) {
         targetScrollTop = 0;
       } else if (index === this.items.length - 1) {
-        targetScrollTop = scrollContainer instanceof HTMLElement ? scrollContainer.scrollHeight : document.body.offsetHeight;
+        targetScrollTop = maxScroll;
       } else {
         const targetRatio = index / Math.max(this.items.length - 1, 1);
-        if (scrollContainer instanceof HTMLElement) {
-          targetScrollTop = (scrollContainer.scrollHeight - scrollContainer.clientHeight) * targetRatio;
-        } else {
-          targetScrollTop = (document.body.offsetHeight - window.innerHeight) * targetRatio;
-        }
+        targetScrollTop = maxScroll * targetRatio;
       }
 
-      if (scrollContainer instanceof HTMLElement) {
-        scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+      if (isWindow) {
+        this.smoothScrollTo(window, Math.max(0, targetScrollTop), 250);
       } else {
-        window.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+        this.smoothScrollTo(scrollContainer as HTMLElement, Math.max(0, targetScrollTop), 250);
       }
 
-      // 多轮重试匹配元素精确定位
+      // 多轮重试精确定位
       const tryLocateAndScroll = (attemptsLeft: number) => {
         const latestItems = this.adapter.getUserMessages();
         const matched = latestItems.find(
-          (latest) => latest.fullText === item.fullText || latest.text === item.text || latest.index === index
+          (latest) => latest.index === index || latest.fullText === item.fullText || latest.text === item.text
         );
 
-        if (matched && document.body.contains(matched.element)) {
+        if (matched && isElementVisible(matched.element)) {
           item.element = matched.element;
-          item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          this.performScrollToElement(scrollContainer, matched.element);
           this.highlightElement(matched.element);
         } else if (attemptsLeft > 0) {
           setTimeout(() => tryLocateAndScroll(attemptsLeft - 1), 150);
         }
       };
 
-      setTimeout(() => tryLocateAndScroll(4), 100);
+      setTimeout(() => tryLocateAndScroll(5), 100);
     }
 
     this.programmaticScrollTimer = window.setTimeout(() => {
       this.isProgrammaticScroll = false;
     }, 1000);
+  }
+
+  private performScrollToElement(scrollContainer: HTMLElement | Window, targetEl: HTMLElement): void {
+    if (scrollContainer instanceof HTMLElement && scrollContainer !== document.body && scrollContainer !== document.documentElement) {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+      const relativeTop = targetRect.top - containerRect.top + scrollContainer.scrollTop;
+      const targetScrollTop = relativeTop - (containerRect.height / 2) + (targetRect.height / 2);
+
+      this.smoothScrollTo(scrollContainer, Math.max(0, targetScrollTop), 250);
+    } else {
+      const targetRect = targetEl.getBoundingClientRect();
+      const targetScrollTop = targetRect.top + window.scrollY - (window.innerHeight / 2) + (targetRect.height / 2);
+      this.smoothScrollTo(window, Math.max(0, targetScrollTop), 250);
+    }
+  }
+
+  private smoothScrollTo(
+    container: HTMLElement | Window,
+    targetTop: number,
+    duration: number = 250
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      const isWindow = container === window || container === document.body || container === document.documentElement;
+      const getScrollTop = () => (isWindow ? window.scrollY : (container as HTMLElement).scrollTop);
+      const setScrollTop = (val: number) => {
+        if (isWindow) {
+          window.scrollTo({ top: val, behavior: 'auto' });
+        } else {
+          (container as HTMLElement).scrollTop = val;
+        }
+      };
+
+      const startTop = getScrollTop();
+      const change = targetTop - startTop;
+
+      if (Math.abs(change) < 5) {
+        setScrollTop(targetTop);
+        resolve();
+        return;
+      }
+
+      const startTime = performance.now();
+
+      const animateScroll = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+
+        setScrollTop(startTop + change * ease);
+
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        } else {
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(animateScroll);
+    });
   }
 
   private highlightElement(el: HTMLElement): void {

@@ -9,7 +9,7 @@ export abstract class BaseAdapter implements ChatAdapter {
     // 1. 优先尝试从现有 DOM 中的提问节点向上寻找祖先滚动容器
     const messages = this.getUserMessages();
     for (const msg of messages) {
-      if (document.body.contains(msg.element)) {
+      if (document.body.contains(msg.element) && (msg.element.offsetHeight > 0 || msg.element.getClientRects().length > 0)) {
         const container = this.findParentScrollContainer(msg.element);
         if (container !== window) {
           return container;
@@ -44,11 +44,13 @@ export abstract class BaseAdapter implements ChatAdapter {
   }
 
   private isScrollable(el: HTMLElement): boolean {
+    if (!el || el === document.body || el === document.documentElement) return false;
     const style = window.getComputedStyle(el);
     const overflowY = style.overflowY;
     const isScrollStyle = overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay';
     return (
       isScrollStyle &&
+      el.scrollHeight > el.clientHeight + 5 &&
       el.clientHeight > 100
     );
   }
