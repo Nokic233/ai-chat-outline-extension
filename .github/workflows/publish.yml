@@ -45,22 +45,11 @@ jobs:
       - name: Submit Extension to Stores
         continue-on-error: true
         run: |
-          CHROME_ZIP=$(ls .output/*-chrome.zip 2>/dev/null | head -n 1)
-          FIREFOX_ZIP=$(ls .output/*-firefox.zip 2>/dev/null | head -n 1)
-
-          ARGS=""
-          if [ -n "$CHROME_ZIP" ] && [ -n "$CHROME_EXTENSION_ID" ]; then
-            ARGS="$ARGS --chrome-zip $CHROME_ZIP"
-          fi
-          if [ -n "$FIREFOX_ZIP" ] && [ -n "$FIREFOX_EXTENSION_ID" ]; then
-            ARGS="$ARGS --firefox-zip $FIREFOX_ZIP"
-          fi
-
-          if [ -n "$ARGS" ]; then
-            npx wxt submit $ARGS
-          else
-            echo "No store credentials configured, skipping store submission."
-          fi
+          npx wxt submit \
+            --chrome-zip .output/*-chrome.zip \
+            --firefox-zip .output/*-firefox.zip \
+            --firefox-sources-zip .output/*-sources.zip \
+            --edge-zip .output/*-chrome.zip
         env:
           CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
