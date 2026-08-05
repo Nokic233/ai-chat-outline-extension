@@ -1,0 +1,19 @@
+{
+  "name": "ai-chat-outline-extension",
+  "version": "1.0.0",
+  "description": "A cross-browser extension providing interactive conversation outlines and quick scrolling navigation for AI platforms like Gemini, ChatGPT, Claude, DeepSeek, and Kimi.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "compile": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "wxt": "^0.19.1"
+  }
+}
