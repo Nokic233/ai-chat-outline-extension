@@ -6,17 +6,64 @@ export abstract class BaseAdapter implements ChatAdapter {
   abstract getUserMessages(): QuestionItem[];
 
   getScrollContainer(): HTMLElement | Window {
-    // 自动判断可滚动容器，默认找最近的大于屏幕高度且 overflow-y 为 scroll/auto 的容器
+    // 1. 优先尝试从现有 DOM 中的提问节点向上寻找祖先滚动容器
+    const messages = this.getUserMessages();
+    for (const msg of messages) {
+      if (document.body.contains(msg.element)) {
+        const container = this.findParentScrollContainer(msg.element);
+        if (container !== window) {
+          return container;
+        }
+      }
+    }
+
+    // 2. 尝试从 <main> 标签或 [role="main"] 内部查找滚动容器
+    const mainEl = document.querySelector('main') || document.querySelector('[role="main"]');
+    if (mainEl) {
+      if (this.isScrollable(mainEl as HTMLElement)) {
+        return mainEl as HTMLElement;
+      }
+      const scrollableInMain = Array.from(mainEl.querySelectorAll('*')).find((el) =>
+        this.isScrollable(el as HTMLElement)
+      ) as HTMLElement;
+      if (scrollableInMain) {
+        return scrollableInMain;
+      }
+    }
+
+    // 3. 通用全局查找，排除 nav / aside / sidebar 侧边栏元素
     const candidates = Array.from(document.querySelectorAll('*')) as HTMLElement[];
     for (const el of candidates) {
-      const style = window.getComputedStyle(el);
-      if (
-        (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-        el.scrollHeight > el.clientHeight &&
-        el.clientHeight > 300
-      ) {
+      if (this.isSidebarElement(el)) continue;
+      if (this.isScrollable(el)) {
         return el;
       }
+    }
+
+    return window;
+  }
+
+  private isScrollable(el: HTMLElement): boolean {
+    const style = window.getComputedStyle(el);
+    return (
+      (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+      el.scrollHeight > el.clientHeight &&
+      el.clientHeight > 150
+    );
+  }
+
+  private isSidebarElement(el: HTMLElement): boolean {
+    const navOrSidebar = el.closest('nav, aside, [role="navigation"], [class*="sidebar"], [class*="nav-"]');
+    return navOrSidebar !== null;
+  }
+
+  private findParentScrollContainer(el: HTMLElement): HTMLElement | Window {
+    let parent = el.parentElement;
+    while (parent && parent !== document.body) {
+      if (!this.isSidebarElement(parent) && this.isScrollable(parent)) {
+        return parent;
+      }
+      parent = parent.parentElement;
     }
     return window;
   }

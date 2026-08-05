@@ -297,12 +297,23 @@ export class OutlinePanel {
       this.highlightElement(item.element);
     } else {
       // 节点暂不在 DOM 中（虚拟列表回收），先估算粗略位置进行滚动以触发渲染
-      const targetRatio = index / Math.max(this.items.length - 1, 1);
+      let targetScrollTop = 0;
+      if (index === 0) {
+        targetScrollTop = 0;
+      } else if (index === this.items.length - 1) {
+        targetScrollTop = scrollContainer instanceof HTMLElement ? scrollContainer.scrollHeight : document.body.offsetHeight;
+      } else {
+        const targetRatio = index / Math.max(this.items.length - 1, 1);
+        if (scrollContainer instanceof HTMLElement) {
+          targetScrollTop = (scrollContainer.scrollHeight - scrollContainer.clientHeight) * targetRatio;
+        } else {
+          targetScrollTop = (document.body.offsetHeight - window.innerHeight) * targetRatio;
+        }
+      }
+
       if (scrollContainer instanceof HTMLElement) {
-        const targetScrollTop = (scrollContainer.scrollHeight - scrollContainer.clientHeight) * targetRatio;
         scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
       } else {
-        const targetScrollTop = (document.body.offsetHeight - window.innerHeight) * targetRatio;
         window.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
       }
 
