@@ -51,10 +51,20 @@ export class OutlinePanel {
     }
 
     const prevActiveIndex = this.activeIndex;
-    this.activeIndex = this.calculateActiveIndex();
 
-    if (prevActiveIndex !== this.activeIndex || prevItemsLength !== this.items.length) {
+    if (!this.isProgrammaticScroll) {
+      const newActiveIndex = this.calculateActiveIndex();
+      if (newActiveIndex !== -1) {
+        this.activeIndex = newActiveIndex;
+      }
+    }
+
+    // 只有在大纲项目数量变化时才重新渲染 HTML 模板（避免 DOM 重建导致 UI 闪烁）
+    if (prevItemsLength !== this.items.length) {
       this.render();
+    } else if (prevActiveIndex !== this.activeIndex) {
+      // 仅仅是激活索引改变，做增量 DOM class 切换
+      this.updateActiveHighlight();
     }
   }
 
