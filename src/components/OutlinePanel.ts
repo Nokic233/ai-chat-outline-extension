@@ -144,28 +144,10 @@ export class OutlinePanel {
     if (this.isExpanded) {
       root.innerHTML = `
         <div class="expanded-panel">
-          <div class="panel-header">
-            <div class="title-group">
-              <span class="panel-title">提问大纲</span>
-              <span class="badge">${this.items.length}</span>
-            </div>
-            <div class="header-actions">
-              <button class="icon-btn copy-btn" title="复制提问 Markdown">📋</button>
-              <button class="icon-btn pin-btn ${this.isPinned ? 'active' : ''}" title="${
-        this.isPinned ? '取消固定' : '钉住固定'
-      }">📌</button>
-              <button class="icon-btn close-btn" title="折叠大纲">✕</button>
-            </div>
-          </div>
-          
-          <div class="search-container">
-            <input type="text" class="search-input" placeholder="搜索提问..." value="${this.filterKeyword}" />
-          </div>
-
           <div class="question-list">
             ${
-              filteredItems.length > 0
-                ? filteredItems
+              this.items.length > 0
+                ? this.items
                     .map(
                       (item) => `
               <div class="list-item ${item.index === this.activeIndex ? 'active' : ''}" data-index="${
@@ -177,45 +159,17 @@ export class OutlinePanel {
             `
                     )
                     .join('')
-                : `<div class="empty-tip">未找到相关提问</div>`
+                : `<div class="empty-tip">暂无提问</div>`
             }
           </div>
         </div>
       `;
 
-      // 绑定事件
+      // 绑定事件：鼠标离开极简卡片自动折叠
       const panelEl = root.querySelector('.expanded-panel') as HTMLElement;
-      if (!this.isPinned) {
-        panelEl.addEventListener('mouseleave', () => {
-          this.isExpanded = false;
-          this.render();
-        });
-      }
-
-      const searchInput = root.querySelector('.search-input') as HTMLInputElement;
-      searchInput?.addEventListener('input', (e) => {
-        this.filterKeyword = (e.target as HTMLInputElement).value;
-        this.render();
-        const newSearch = this.shadowRoot.querySelector('.search-input') as HTMLInputElement;
-        newSearch?.focus();
-      });
-
-      const pinBtn = root.querySelector('.pin-btn');
-      pinBtn?.addEventListener('click', () => {
-        this.isPinned = !this.isPinned;
-        this.render();
-      });
-
-      const closeBtn = root.querySelector('.close-btn');
-      closeBtn?.addEventListener('click', () => {
+      panelEl?.addEventListener('mouseleave', () => {
         this.isExpanded = false;
-        this.isPinned = false;
         this.render();
-      });
-
-      const copyBtn = root.querySelector('.copy-btn');
-      copyBtn?.addEventListener('click', () => {
-        this.copyAsMarkdown();
       });
 
       const listItems = root.querySelectorAll('.list-item');

@@ -78,17 +78,18 @@
   box-shadow: 0 0 8px rgba(71, 133, 255, 0.5);
 }
 
-/* 2. 展开模式：精美卡片面板 */
+/* 2. 展开模式：极简纯净卡片面板 */
 .expanded-panel {
   display: flex;
   flex-direction: column;
-  width: 280px;
+  width: 270px;
   max-height: 75vh;
   background: var(--bg-color);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 18px;
   box-shadow: var(--shadow);
   overflow: hidden;
+  padding: 8px 6px;
   backdrop-filter: blur(12px);
   animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -104,96 +105,14 @@
   }
 }
 
-/* Header */
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px 8px 14px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.title-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.panel-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.badge {
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  background: var(--bg-hover);
-  color: var(--text-muted);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.icon-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 12px;
-}
-
-.icon-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-main);
-}
-
-.icon-btn.active {
-  color: var(--active-color);
-  background: var(--bg-hover);
-}
-
-/* Search bar */
-.search-container {
-  padding: 8px 12px;
-}
-
-.search-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-hover);
-  color: var(--text-main);
-  font-size: 12px;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.search-input:focus {
-  border-color: var(--active-color);
-}
-
 /* Question List */
 .question-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 6px 8px 12px 8px;
+  padding: 4px;
   overflow-y: auto;
-  max-height: 50vh;
+  max-height: 65vh;
 }
 
 .question-list::-webkit-scrollbar {
@@ -205,14 +124,14 @@
   border-radius: 4px;
 }
 
-/* List Item (与图片1一致：右侧带有小横线，当前项蓝色高亮) */
+/* List Item (与参考图1一致：右侧带有小横线，当前项蓝色高亮) */
 .list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
   color: var(--text-main);
@@ -227,6 +146,7 @@
 .list-item.active {
   color: var(--active-color);
   font-weight: 500;
+  background: rgba(71, 133, 255, 0.08);
 }
 
 .item-text {
@@ -268,3 +188,4 @@
   animation: aiOutlinePulse 2s ease-out;
   border-radius: 8px;
 }
+

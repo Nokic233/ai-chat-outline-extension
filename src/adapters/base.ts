@@ -44,8 +44,10 @@ export abstract class BaseAdapter implements ChatAdapter {
   }
 
   protected createQuestionItem(el: HTMLElement, rawText: string, index: number): QuestionItem {
-    const fullText = rawText.trim().replace(/\s+/g, ' ');
-    const maxLen = 40;
+    // 过滤开头的“你说”、“你:”、“You:”、“User:”等多余前缀
+    let cleanedText = rawText.trim().replace(/^(你说|你|You|User)[:：\s]*/gi, '').trim();
+    const fullText = cleanedText.replace(/\s+/g, ' ');
+    const maxLen = 35;
     const text = fullText.length > maxLen ? fullText.substring(0, maxLen) + '...' : fullText;
     
     // 如果元素没有 ID，为其生成临时 ID 以便精准控制
