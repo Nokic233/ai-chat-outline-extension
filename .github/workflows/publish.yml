@@ -45,22 +45,11 @@ jobs:
       - name: Submit Extension to Stores
         continue-on-error: true
         run: |
-          ARGS=""
-          if [ -n "$CHROME_EXTENSION_ID" ]; then
-            ARGS="$ARGS --chrome-zip .output/*-chrome.zip"
-          fi
-          if [ -n "$FIREFOX_EXTENSION_ID" ]; then
-            ARGS="$ARGS --firefox-zip .output/*-firefox.zip --firefox-sources-zip .output/*-sources.zip"
-          fi
-          if [ -n "$EDGE_PRODUCT_ID" ] || [ -n "$EDGE_API_KEY" ]; then
-            ARGS="$ARGS --edge-zip .output/*-chrome.zip"
-          fi
-
-          if [ -n "$ARGS" ]; then
-            npx wxt submit $ARGS
-          else
-            echo "No store credentials configured, skipping store submission."
-          fi
+          npx wxt submit \
+            --chrome-zip .output/*-chrome.zip \
+            --firefox-zip .output/*-firefox.zip \
+            --firefox-sources-zip .output/*-sources.zip \
+            --edge-zip .output/*-chrome.zip
         env:
           CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
@@ -75,5 +64,4 @@ jobs:
 
           EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
           EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
-          EDGE_CLIENT_SECRET: ${{ secrets.EDGE_CLIENT_SECRET }}
-          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+          EDGE_API_KEY: ${{ secrets.EDGE_CLIENT_SECRET }}
