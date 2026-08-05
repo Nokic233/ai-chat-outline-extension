@@ -14,3 +14,4 @@ export interface ChatAdapter {
   observe(callback: () => void): () => void;
   isDarkMode?(): boolean;
 }
+
