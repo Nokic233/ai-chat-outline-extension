@@ -43,16 +43,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Submit Extension to Stores
-        if: ${{ secrets.CHROME_EXTENSION_ID != '' || secrets.FIREFOX_EXTENSION_ID != '' || secrets.EDGE_PRODUCT_ID != '' }}
+        continue-on-error: true
         run: |
           CHROME_ZIP=$(ls .output/*-chrome.zip 2>/dev/null | head -n 1)
           FIREFOX_ZIP=$(ls .output/*-firefox.zip 2>/dev/null | head -n 1)
 
           ARGS=""
-          if [ -n "$CHROME_ZIP" ] && [ -n "${{ secrets.CHROME_EXTENSION_ID }}" ]; then
+          if [ -n "$CHROME_ZIP" ] && [ -n "$CHROME_EXTENSION_ID" ]; then
             ARGS="$ARGS --chrome-zip $CHROME_ZIP"
           fi
-          if [ -n "$FIREFOX_ZIP" ] && [ -n "${{ secrets.FIREFOX_EXTENSION_ID }}" ]; then
+          if [ -n "$FIREFOX_ZIP" ] && [ -n "$FIREFOX_EXTENSION_ID" ]; then
             ARGS="$ARGS --firefox-zip $FIREFOX_ZIP"
           fi
 
