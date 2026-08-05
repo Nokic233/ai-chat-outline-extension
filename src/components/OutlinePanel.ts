@@ -300,13 +300,40 @@ export class OutlinePanel {
     this.updateActiveHighlight();
 
     const scrollContainer = this.adapter.getScrollContainer();
-    const isElementInDOM = document.body.contains(item.element);
 
-    if (isElementInDOM) {
-      item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      this.highlightElement(item.element);
+    // 尝试在页面中查找最新匹配的 live 节点（解决 SPA / React 重新渲染后 DOM 节点引用失效问题）
+    let targetEl: HTMLElement | null = document.body.contains(item.element) ? item.element : null;
+
+    if (!targetEl) {
+      const latestItems = this.adapter.getUserMessages();
+      const matched = latestItems.find(
+        (latest) => latest.fullText === item.fullText || latest.text === item.text || latest.index === index
+      );
+      if (matched && document.body.contains(matched.element)) {
+        targetEl = matched.element;
+        item.element = matched.element; // 更新缓存中的元素引用
+      }
+    }
+
+    if (targetEl && document.body.contains(targetEl)) {
+      // 1. 调用原生的 scrollIntoView
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      this.highlightElement(targetEl);
+
+      // 2. 如果存在显式滚动的父容器，计算 exact scrollTop 并双重保障触发滚动
+      if (scrollContainer instanceof HTMLElement) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const elRect = targetEl.getBoundingClientRect();
+        const relativeTop = elRect.top - containerRect.top + scrollContainer.scrollTop;
+        const targetScrollTop = relativeTop - containerRect.height / 2 + elRect.height / 2;
+
+        scrollContainer.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'smooth'
+        });
+      }
     } else {
-      // 节点暂不在 DOM 中（虚拟列表回收），先估算粗略位置进行滚动以触发渲染
+      // 节点暂不在 DOM 中（虚拟列表回收），按估算比例触发滚动以让虚拟列表渲染节点
       let targetScrollTop = 0;
       if (index === 0) {
         targetScrollTop = 0;
@@ -331,7 +358,7 @@ export class OutlinePanel {
       const tryLocateAndScroll = (attemptsLeft: number) => {
         const latestItems = this.adapter.getUserMessages();
         const matched = latestItems.find(
-          (latest) => latest.fullText === item.fullText || latest.text === item.text
+          (latest) => latest.fullText === item.fullText || latest.text === item.text || latest.index === index
         );
 
         if (matched && document.body.contains(matched.element)) {
@@ -339,11 +366,11 @@ export class OutlinePanel {
           item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
           this.highlightElement(matched.element);
         } else if (attemptsLeft > 0) {
-          setTimeout(() => tryLocateAndScroll(attemptsLeft - 1), 200);
+          setTimeout(() => tryLocateAndScroll(attemptsLeft - 1), 150);
         }
       };
 
-      setTimeout(() => tryLocateAndScroll(4), 150);
+      setTimeout(() => tryLocateAndScroll(4), 100);
     }
 
     this.programmaticScrollTimer = window.setTimeout(() => {

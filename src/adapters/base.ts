@@ -45,10 +45,11 @@ export abstract class BaseAdapter implements ChatAdapter {
 
   private isScrollable(el: HTMLElement): boolean {
     const style = window.getComputedStyle(el);
+    const overflowY = style.overflowY;
+    const isScrollStyle = overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay';
     return (
-      (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-      el.scrollHeight > el.clientHeight &&
-      el.clientHeight > 150
+      isScrollStyle &&
+      el.clientHeight > 100
     );
   }
 
@@ -59,7 +60,7 @@ export abstract class BaseAdapter implements ChatAdapter {
 
   private findParentScrollContainer(el: HTMLElement): HTMLElement | Window {
     let parent = el.parentElement;
-    while (parent && parent !== document.body) {
+    while (parent && parent !== document.body && parent !== document.documentElement) {
       if (!this.isSidebarElement(parent) && this.isScrollable(parent)) {
         return parent;
       }
@@ -91,8 +92,8 @@ export abstract class BaseAdapter implements ChatAdapter {
   }
 
   protected createQuestionItem(el: HTMLElement, rawText: string, index: number): QuestionItem {
-    // 过滤开头的“你说”、“你:”、“You:”、“User:”等多余前缀
-    let cleanedText = rawText.trim().replace(/^(你说|你|You|User)[:：\s]*/gi, '').trim();
+    // 过滤开头的“你说”、“你:”、“You:”、“User:”等多余前缀（需接冒号或空白，避免把“你是什么”误删为“是什么”）
+    let cleanedText = rawText.trim().replace(/^(你说|你|You|User)[:：\s]+/gi, '').trim();
     const fullText = cleanedText.replace(/\s+/g, ' ');
     const maxLen = 35;
     const text = fullText.length > maxLen ? fullText.substring(0, maxLen) + '...' : fullText;
