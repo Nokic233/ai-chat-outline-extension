@@ -16,6 +16,14 @@ export default defineConfig({
       'https://kimi.moonshot.cn/*',
       'https://*.baichuan-ai.com/*',
       'https://yuanbao.tencent.com/*'
-    ]
+    ],
+    browser_specific_settings: {
+      gecko: {
+        id: 'ai-chat-outline@extension',
+        data_collection_permissions: {
+          required: ['none']
+        }
+      }
+    }
   }
 });
