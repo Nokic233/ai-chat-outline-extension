@@ -7,7 +7,6 @@ export default defineContentScript({
     'https://gemini.google.com/*',
     'https://chatgpt.com/*',
     'https://chat.openai.com/*',
-    'https://claude.ai/*',
     'https://kimi.moonshot.cn/*',
     'https://*.baichuan-ai.com/*',
     'https://yuanbao.tencent.com/*'

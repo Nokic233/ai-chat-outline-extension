@@ -1,14 +1,12 @@
 import { ChatAdapter } from '../types';
 import { GeminiAdapter } from './gemini';
 import { ChatGPTAdapter } from './chatgpt';
-import { ClaudeAdapter } from './claude';
 import { KimiAdapter } from './kimi';
 import { GenericAdapter } from './generic';
 
 const adapters: ChatAdapter[] = [
   new GeminiAdapter(),
   new ChatGPTAdapter(),
-  new ClaudeAdapter(),
   new KimiAdapter(),
   new GenericAdapter(),
 ];
