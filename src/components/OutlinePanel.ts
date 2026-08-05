@@ -38,37 +38,77 @@ export class OutlinePanel {
     this.render();
   }
 
-  public updateItems(items: QuestionItem[]): void {
-    const isSessionChanged =
-      items.length !== this.items.length ||
-      (items.length > 0 && this.items.length > 0 && items[0].id !== this.items[0].id);
+  public resetCache(): void {
+    this.items = [];
+    this.activeIndex = -1;
+  }
 
-    this.items = items;
-    this.activeIndex = this.calculateActiveIndex();
-    this.render();
-
-    // 当会话发生改变或初次加载时，延迟多次再次计算激活项，确保 SPA 布局渲染稳定
-    if (isSessionChanged) {
-      setTimeout(() => {
-        if (!this.isProgrammaticScroll) {
-          const newIdx = this.calculateActiveIndex();
-          if (newIdx !== this.activeIndex) {
-            this.activeIndex = newIdx;
-            this.updateActiveHighlight();
-          }
-        }
-      }, 150);
-
-      setTimeout(() => {
-        if (!this.isProgrammaticScroll) {
-          const newIdx = this.calculateActiveIndex();
-          if (newIdx !== this.activeIndex) {
-            this.activeIndex = newIdx;
-            this.updateActiveHighlight();
-          }
-        }
-      }, 500);
+  public updateItems(scannedItems: QuestionItem[]): void {
+    if (scannedItems.length > 0) {
+      this.mergeItems(scannedItems);
     }
+
+    const prevActiveIndex = this.activeIndex;
+    this.activeIndex = this.calculateActiveIndex();
+
+    if (prevActiveIndex !== this.activeIndex) {
+      this.render();
+    }
+  }
+
+  private mergeItems(scannedItems: QuestionItem[]): void {
+    if (scannedItems.length === 0) return;
+
+    if (this.items.length === 0) {
+      this.items = [...scannedItems];
+      return;
+    }
+
+    // 尝试在历史缓存中定位 scannedItems 的匹配锚点
+    let matchedStartIndex = this.items.findIndex((item) => item.fullText === scannedItems[0].fullText);
+
+    if (matchedStartIndex !== -1) {
+      scannedItems.forEach((scanned, offset) => {
+        const targetIdx = matchedStartIndex + offset;
+        if (targetIdx < this.items.length) {
+          this.items[targetIdx].element = scanned.element;
+        } else {
+          scanned.index = this.items.length;
+          this.items.push({ ...scanned });
+        }
+      });
+    } else {
+      let firstFoundInHistory = -1;
+      let firstFoundInScanned = -1;
+
+      for (let sIdx = 0; sIdx < scannedItems.length; sIdx++) {
+        const hIdx = this.items.findIndex((item) => item.fullText === scannedItems[sIdx].fullText);
+        if (hIdx !== -1) {
+          firstFoundInHistory = hIdx;
+          firstFoundInScanned = sIdx;
+          break;
+        }
+      }
+
+      if (firstFoundInHistory !== -1 && firstFoundInScanned !== -1) {
+        scannedItems.forEach((scanned, sIdx) => {
+          const targetIdx = firstFoundInHistory + (sIdx - firstFoundInScanned);
+          if (targetIdx >= 0 && targetIdx < this.items.length) {
+            this.items[targetIdx].element = scanned.element;
+          } else if (targetIdx >= this.items.length) {
+            scanned.index = this.items.length;
+            this.items.push({ ...scanned });
+          }
+        });
+      } else {
+        // 完全无法重合（可能切换了会话），重置列表
+        this.items = [...scannedItems];
+      }
+    }
+
+    this.items.forEach((item, idx) => {
+      item.index = idx;
+    });
   }
 
   private handleScroll(): void {
@@ -87,7 +127,7 @@ export class OutlinePanel {
     const viewportHeight = window.innerHeight;
     const threshold = viewportHeight * 0.35; // 判定参照线：屏幕上方 35% 位置
 
-    // 1. 优先判断是否滚动到了聊天页面底部（如果是底部，直接定位到最后一个提问）
+    // 1. 优先判断是否滚动到了聊天页面底部
     const scrollContainer = this.adapter.getScrollContainer();
     if (scrollContainer instanceof HTMLElement) {
       const isAtBottom =
@@ -99,12 +139,15 @@ export class OutlinePanel {
       return this.items.length - 1;
     }
 
-    // 2. 查找当前视口内位于 threshold 上方且未完全离开视口上方的最后一个提问
+    // 2. 查找当前视口内位于 threshold 上方且未完全离开视口的最后一个提问（仅计算在 DOM 中的元素）
     let matchedIndex = -1;
     for (let i = 0; i < this.items.length; i++) {
-      const rect = this.items[i].element.getBoundingClientRect();
-      if (rect.top <= threshold && rect.bottom > 0) {
-        matchedIndex = i;
+      const el = this.items[i].element;
+      if (document.body.contains(el)) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= threshold && rect.bottom > 0) {
+          matchedIndex = i;
+        }
       }
     }
 
@@ -112,19 +155,21 @@ export class OutlinePanel {
       return matchedIndex;
     }
 
-    // 3. 兜底方案：找到离 threshold 最近的提问
-    let closestIdx = 0;
+    // 3. 兜底方案：找到离 threshold 最近的挂载中提问
+    let closestIdx = -1;
     let minDistance = Infinity;
     this.items.forEach((item, idx) => {
-      const rect = item.element.getBoundingClientRect();
-      const distance = Math.abs(rect.top - threshold);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestIdx = idx;
+      if (document.body.contains(item.element)) {
+        const rect = item.element.getBoundingClientRect();
+        const distance = Math.abs(rect.top - threshold);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIdx = idx;
+        }
       }
     });
 
-    return closestIdx;
+    return closestIdx !== -1 ? closestIdx : this.activeIndex;
   }
 
   private render(): void {
@@ -216,7 +261,6 @@ export class OutlinePanel {
         const idx = parseInt(item.getAttribute('data-index') || '0', 10);
         if (idx === this.activeIndex) {
           item.classList.add('active');
-          // 将当前高亮项自动滚动到大纲弹出面板视口中央
           (item as HTMLElement).scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         } else {
           item.classList.remove('active');
@@ -246,17 +290,53 @@ export class OutlinePanel {
     this.activeIndex = index;
     this.updateActiveHighlight();
 
-    // 平滑滚动至目标消息
-    item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const scrollContainer = this.adapter.getScrollContainer();
+    const isElementInDOM = document.body.contains(item.element);
 
-    // 添加动画闪烁效果
-    item.element.classList.remove('ai-outline-highlight');
-    void item.element.offsetWidth; // force reflow
-    item.element.classList.add('ai-outline-highlight');
+    if (isElementInDOM) {
+      item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      this.highlightElement(item.element);
+    } else {
+      // 节点暂不在 DOM 中（虚拟列表回收），先估算粗略位置进行滚动以触发渲染
+      const targetRatio = index / Math.max(this.items.length - 1, 1);
+      if (scrollContainer instanceof HTMLElement) {
+        const targetScrollTop = (scrollContainer.scrollHeight - scrollContainer.clientHeight) * targetRatio;
+        scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+      } else {
+        const targetScrollTop = (document.body.offsetHeight - window.innerHeight) * targetRatio;
+        window.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+      }
+
+      // 多轮重试匹配元素精确定位
+      const tryLocateAndScroll = (attemptsLeft: number) => {
+        const latestItems = this.adapter.getUserMessages();
+        const matched = latestItems.find(
+          (latest) => latest.fullText === item.fullText || latest.text === item.text
+        );
+
+        if (matched && document.body.contains(matched.element)) {
+          item.element = matched.element;
+          item.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          this.highlightElement(matched.element);
+        } else if (attemptsLeft > 0) {
+          setTimeout(() => tryLocateAndScroll(attemptsLeft - 1), 200);
+        }
+      };
+
+      setTimeout(() => tryLocateAndScroll(4), 150);
+    }
 
     this.programmaticScrollTimer = window.setTimeout(() => {
       this.isProgrammaticScroll = false;
-      item.element.classList.remove('ai-outline-highlight');
+    }, 1000);
+  }
+
+  private highlightElement(el: HTMLElement): void {
+    el.classList.remove('ai-outline-highlight');
+    void el.offsetWidth; // force reflow
+    el.classList.add('ai-outline-highlight');
+    setTimeout(() => {
+      el.classList.remove('ai-outline-highlight');
     }, 1000);
   }
 

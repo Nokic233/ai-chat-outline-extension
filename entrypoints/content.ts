@@ -45,6 +45,7 @@ export default defineContentScript({
     const urlCheckInterval = setInterval(() => {
       if (location.href !== lastUrl) {
         lastUrl = location.href;
+        panel?.resetCache();
         setTimeout(syncOutline, 500);
       }
     }, 1000);
