@@ -1,6 +1,6 @@
 {
   "name": "ai-chat-outline-extension",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A cross-browser extension providing interactive conversation outlines and quick scrolling navigation for AI platforms like Gemini, ChatGPT, and Kimi.",
   "private": true,
   "type": "module",
