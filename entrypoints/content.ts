@@ -8,7 +8,6 @@ export default defineContentScript({
     'https://chatgpt.com/*',
     'https://chat.openai.com/*',
     'https://claude.ai/*',
-    'https://chat.deepseek.com/*',
     'https://kimi.moonshot.cn/*',
     'https://*.baichuan-ai.com/*',
     'https://yuanbao.tencent.com/*'
