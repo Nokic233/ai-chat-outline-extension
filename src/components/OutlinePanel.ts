@@ -44,6 +44,8 @@ export class OutlinePanel {
   }
 
   public updateItems(scannedItems: QuestionItem[]): void {
+    const prevItemsLength = this.items.length;
+
     if (scannedItems.length > 0) {
       this.mergeItems(scannedItems);
     }
@@ -51,7 +53,7 @@ export class OutlinePanel {
     const prevActiveIndex = this.activeIndex;
     this.activeIndex = this.calculateActiveIndex();
 
-    if (prevActiveIndex !== this.activeIndex) {
+    if (prevActiveIndex !== this.activeIndex || prevItemsLength !== this.items.length) {
       this.render();
     }
   }
@@ -61,49 +63,46 @@ export class OutlinePanel {
 
     if (this.items.length === 0) {
       this.items = [...scannedItems];
+      this.items.forEach((item, idx) => {
+        item.index = idx;
+      });
       return;
     }
 
-    // 尝试在历史缓存中定位 scannedItems 的匹配锚点
-    let matchedStartIndex = this.items.findIndex((item) => item.fullText === scannedItems[0].fullText);
+    // 寻找 scannedItems 与 this.items 之间的第一个相交锚点
+    let sAnchor = -1;
+    let hAnchor = -1;
 
-    if (matchedStartIndex !== -1) {
-      scannedItems.forEach((scanned, offset) => {
-        const targetIdx = matchedStartIndex + offset;
-        if (targetIdx < this.items.length) {
+    for (let sIdx = 0; sIdx < scannedItems.length; sIdx++) {
+      const hIdx = this.items.findIndex((item) => item.fullText === scannedItems[sIdx].fullText);
+      if (hIdx !== -1) {
+        sAnchor = sIdx;
+        hAnchor = hIdx;
+        break;
+      }
+    }
+
+    if (sAnchor !== -1 && hAnchor !== -1) {
+      const prependItems: QuestionItem[] = [];
+
+      scannedItems.forEach((scanned, sIdx) => {
+        const targetIdx = hAnchor + (sIdx - sAnchor);
+        if (targetIdx >= 0 && targetIdx < this.items.length) {
           this.items[targetIdx].element = scanned.element;
-        } else {
-          scanned.index = this.items.length;
+        } else if (targetIdx >= this.items.length) {
           this.items.push({ ...scanned });
+        } else {
+          // targetIdx < 0：向上滚动加载出的顶部更早的提问
+          prependItems.push({ ...scanned });
         }
       });
+
+      if (prependItems.length > 0) {
+        this.items = [...prependItems, ...this.items];
+      }
     } else {
-      let firstFoundInHistory = -1;
-      let firstFoundInScanned = -1;
-
-      for (let sIdx = 0; sIdx < scannedItems.length; sIdx++) {
-        const hIdx = this.items.findIndex((item) => item.fullText === scannedItems[sIdx].fullText);
-        if (hIdx !== -1) {
-          firstFoundInHistory = hIdx;
-          firstFoundInScanned = sIdx;
-          break;
-        }
-      }
-
-      if (firstFoundInHistory !== -1 && firstFoundInScanned !== -1) {
-        scannedItems.forEach((scanned, sIdx) => {
-          const targetIdx = firstFoundInHistory + (sIdx - firstFoundInScanned);
-          if (targetIdx >= 0 && targetIdx < this.items.length) {
-            this.items[targetIdx].element = scanned.element;
-          } else if (targetIdx >= this.items.length) {
-            scanned.index = this.items.length;
-            this.items.push({ ...scanned });
-          }
-        });
-      } else {
-        // 完全无法重合（可能切换了会话），重置列表
-        this.items = [...scannedItems];
-      }
+      // 无法与已有历史找到重叠节点（如切换了会话或重置），使用最新扫描到的列表
+      this.items = [...scannedItems];
     }
 
     this.items.forEach((item, idx) => {
