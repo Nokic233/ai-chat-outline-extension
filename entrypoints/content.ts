@@ -11,7 +11,9 @@ export default defineContentScript({
     'https://*.kimi.ai/*',
     'https://kimi.moonshot.cn/*',
     'https://yuanbao.tencent.com/*',
-    'https://*.yuanbao.tencent.com/*'
+    'https://*.yuanbao.tencent.com/*',
+    'https://doubao.com/*',
+    'https://*.doubao.com/*'
   ],
   runAt: 'document_end',
   main() {

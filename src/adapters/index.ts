@@ -3,6 +3,7 @@ import { GeminiAdapter } from './gemini';
 import { ChatGPTAdapter } from './chatgpt';
 import { KimiAdapter } from './kimi';
 import { YuanbaoAdapter } from './yuanbao';
+import { DoubaoAdapter } from './doubao';
 import { GenericAdapter } from './generic';
 
 const adapters: ChatAdapter[] = [
@@ -10,6 +11,7 @@ const adapters: ChatAdapter[] = [
   new ChatGPTAdapter(),
   new KimiAdapter(),
   new YuanbaoAdapter(),
+  new DoubaoAdapter(),
   new GenericAdapter(),
 ];
 
