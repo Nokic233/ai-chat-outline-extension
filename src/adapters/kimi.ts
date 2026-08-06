@@ -32,45 +32,51 @@ export class KimiAdapter extends BaseAdapter {
       '[class*="chat-segment-user"]',
       '[class*="chat-item-user"]',
       '[class*="user-content"]',
-      '[data-role="user"]'
+      '[data-role="user"]',
     ];
 
-    const elements: HTMLElement[] = [];
-    selectors.forEach(sel => {
-      const found = Array.from(document.querySelectorAll(sel)) as HTMLElement[];
-      found.forEach(el => {
-        if (!elements.includes(el)) {
-          elements.push(el);
-        }
-      });
-    });
+    return this.extractQuestionItemsFromSelectors(selectors);
+  }
 
-    // 1. 过滤并去重：只保留最外层的用户提问容器，防止嵌套节点导致重复项
-    const validElements = elements.filter(el => {
-      const parent = el.parentElement?.closest(selectors.join(','));
-      return !parent;
-    });
+  override async scrollToQuestion(
+    item: QuestionItem,
+    allItems: QuestionItem[],
+    prevActiveIndex: number
+  ): Promise<void> {
 
-    const items: QuestionItem[] = [];
+    let targetEl: HTMLElement | null = this.isElementVisible(item.element) ? item.element : null;
 
-    validElements.forEach((el) => {
-      // 2. 尝试定位文本内容节点
-      const contentEl = (el.querySelector('.user-content, [class*="user-content"], [class*="content"], [class*="text"]') as HTMLElement) || el;
-      
-      // 3. 克隆节点并剔除“编辑”、“复制”、“分享”等按钮和工具栏节点
-      const clone = contentEl.cloneNode(true) as HTMLElement;
-      clone.querySelectorAll('[class*="action"], [class*="tool"], [class*="btn"], button, [class*="ops"], [class*="edit"]').forEach(node => node.remove());
-      
-      let text = (clone.innerText || clone.textContent || '').trim();
-      
-      // 4. 清理残留的操作按钮文本
-      text = text.replace(/(编辑|复制|分享|Edit|Copy|Share)/g, '').trim();
-
-      if (text.length > 0) {
-        items.push(this.createQuestionItem(el, text, items.length));
+    if (!targetEl) {
+      const latestItems = this.getUserMessages();
+      const matched = latestItems.find(
+        (latest) =>
+          latest.index === item.index || latest.fullText === item.fullText || latest.text === item.text
+      );
+      if (matched && this.isElementVisible(matched.element)) {
+        targetEl = matched.element;
+        item.element = matched.element;
       }
-    });
+    }
 
-    return items;
+    if (targetEl && this.isElementVisible(targetEl)) {
+      const scrollContainer = this.getScrollContainer();
+      const topOffset = 20;
+
+      if (scrollContainer instanceof HTMLElement && scrollContainer !== document.body && scrollContainer !== document.documentElement) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const targetRect = targetEl.getBoundingClientRect();
+        const relativeTop = targetRect.top - containerRect.top + scrollContainer.scrollTop;
+        const targetScrollTop = relativeTop - topOffset;
+        await this.smoothScrollTo(scrollContainer, Math.max(0, targetScrollTop), 250);
+      } else {
+        const targetRect = targetEl.getBoundingClientRect();
+        const targetScrollTop = targetRect.top + window.scrollY - topOffset;
+        await this.smoothScrollTo(window, Math.max(0, targetScrollTop), 250);
+      }
+
+      this.highlightElement(targetEl);
+    }
   }
 }
+
+

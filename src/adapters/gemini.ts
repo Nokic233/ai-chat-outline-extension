@@ -8,6 +8,14 @@ export class GeminiAdapter extends BaseAdapter {
     return url.includes('gemini.google.com');
   }
 
+  override getScrollContainer(): HTMLElement | Window {
+    const scroller = document.querySelector('infinite-scroller, .conversations-container, [class*="chat-history"], main') as HTMLElement;
+    if (scroller && scroller.scrollHeight > scroller.clientHeight + 5) {
+      return scroller;
+    }
+    return super.getScrollContainer();
+  }
+
   getUserMessages(): QuestionItem[] {
     const selectors = [
       'user-query',
@@ -15,28 +23,49 @@ export class GeminiAdapter extends BaseAdapter {
       '[data-test-id="user-query"]',
       '.query-text',
       '.user-query-container',
-      'div[class*="query-content"]'
+      'div[class*="query-content"]',
+      'div[class*="user-query"]',
+      'p[class*="query"]',
     ];
 
-    const elements: HTMLElement[] = [];
-    selectors.forEach(sel => {
-      const found = Array.from(document.querySelectorAll(sel)) as HTMLElement[];
-      found.forEach(el => {
-        if (!elements.includes(el)) {
-          elements.push(el);
-        }
-      });
-    });
+    return this.extractQuestionItemsFromSelectors(selectors);
+  }
 
-    // 过滤并去重（避免父节点与子节点同时存在）
-    const validElements = elements.filter(el => {
-      const parentQuery = el.parentElement?.closest(selectors.join(','));
-      return !parentQuery;
-    });
+  override async scrollToQuestion(
+    item: QuestionItem,
+    allItems: QuestionItem[],
+    prevActiveIndex: number
+  ): Promise<void> {
+    let targetEl: HTMLElement | null = this.isElementVisible(item.element) ? item.element : null;
 
-    return validElements.map((el, idx) => {
-      const text = el.innerText || el.textContent || '';
-      return this.createQuestionItem(el, text, idx);
-    });
+    if (!targetEl) {
+      const latestItems = this.getUserMessages();
+      const matched = latestItems.find(
+        (latest) =>
+          latest.index === item.index || latest.fullText === item.fullText || latest.text === item.text
+      );
+      if (matched && this.isElementVisible(matched.element)) {
+        targetEl = matched.element;
+        item.element = matched.element;
+      }
+    }
+
+    if (targetEl && this.isElementVisible(targetEl)) {
+      try {
+        const prevMargin = targetEl.style.scrollMarginTop;
+        targetEl.style.scrollMarginTop = '60px';
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => {
+          targetEl!.style.scrollMarginTop = prevMargin;
+        }, 800);
+      } catch (e) {
+        const scrollContainer = this.getScrollContainer();
+        const targetRect = targetEl.getBoundingClientRect();
+        const targetScrollTop = targetRect.top + window.scrollY - 24;
+        await this.smoothScrollTo(scrollContainer, Math.max(0, targetScrollTop), 250);
+      }
+
+      this.highlightElement(targetEl);
+    }
   }
 }

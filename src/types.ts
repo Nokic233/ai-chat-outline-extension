@@ -13,5 +13,8 @@ export interface ChatAdapter {
   getScrollContainer(): HTMLElement | Window;
   observe(callback: () => void): () => void;
   isDarkMode?(): boolean;
+  scrollToQuestion(item: QuestionItem, allItems: QuestionItem[], prevActiveIndex: number): Promise<void>;
 }
+
+
 

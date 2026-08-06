@@ -309,104 +309,21 @@ export class OutlinePanel {
     this.activeIndex = index;
     this.updateActiveHighlight();
 
-    const scrollContainer = this.adapter.getScrollContainer();
-    const isWindow = scrollContainer === window || scrollContainer === document.body || scrollContainer === document.documentElement;
-
-    const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-    const isElementVisible = (el: HTMLElement) => {
-      return (
-        document.body.contains(el) &&
-        (el.offsetHeight > 0 || el.offsetWidth > 0 || el.getClientRects().length > 0)
-      );
-    };
-
-    const getScrollTop = () => (isWindow ? window.scrollY : (scrollContainer as HTMLElement).scrollTop);
-    const setScrollTop = (val: number) => {
-      if (isWindow) {
-        window.scrollTo({ top: val, behavior: 'auto' });
-      } else {
-        (scrollContainer as HTMLElement).scrollTop = val;
+    try {
+      // 调取当前 AI 网页专属适配器的跳转逻辑
+      await this.adapter.scrollToQuestion(item, this.items, prevActiveIndex);
+    } finally {
+      if (this.programmaticScrollTimer) {
+        clearTimeout(this.programmaticScrollTimer);
       }
-    };
-
-    // 如果目标是首项 (index 0)，直接先将 scrollTop 设置到 0 附近
-    if (index === 0) {
-      setScrollTop(0);
-      await delay(80);
-    }
-
-    const direction = index < prevActiveIndex ? -1 : 1; // -1 表示向上滚动查找，1 表示向下滚动查找
-    let targetEl: HTMLElement | null = null;
-
-    // 1. 步进查找阶段（专为虚拟列表 DOM 回收设计：步进滚动直至目标节点挂载至 DOM）
-    for (let attempt = 0; attempt < 35; attempt++) {
-      const latestItems = this.adapter.getUserMessages();
-      const matched = latestItems.find(
-        (latest) => latest.index === index || latest.fullText === item.fullText || latest.text === item.text
-      );
-
-      if (matched && isElementVisible(matched.element)) {
-        targetEl = matched.element;
-        item.element = matched.element;
-        break;
-      }
-
-      const prevScroll = getScrollTop();
-      setScrollTop(prevScroll + direction * 350);
-      await delay(50);
-
-      // 如果滚动触底或触顶无法再动，尝试反向搜索一次
-      if (getScrollTop() === prevScroll) {
-        break;
-      }
-    }
-
-    // 2. 像素级微调收敛阶段（动态迭代校准 scrollTop，直到目标顶部距离容器顶部恰好 20px）
-    if (targetEl && isElementVisible(targetEl)) {
-      const topOffset = 20;
-      let fineSteps = 0;
-
-      while (fineSteps < 12) {
-        const targetRect = targetEl.getBoundingClientRect();
-        const containerRect = isWindow
-          ? { top: 0, height: window.innerHeight }
-          : (scrollContainer as HTMLElement).getBoundingClientRect();
-
-        const diff = targetRect.top - containerRect.top - topOffset;
-
-        if (Math.abs(diff) < 1.5) {
-          break; // 达到了像素级完美对齐，退出循环
-        }
-
-        setScrollTop(getScrollTop() + diff);
-        await delay(50);
-        fineSteps++;
-      }
-
-      this.highlightElement(targetEl);
-    }
-
-    this.programmaticScrollTimer = window.setTimeout(() => {
-      this.isProgrammaticScroll = false;
-    }, 800);
-  }
-
-  private performScrollToElement(scrollContainer: HTMLElement | Window, targetEl: HTMLElement): void {
-    const topOffset = 20; // 顶部留白，将提问定位在视口顶部
-    if (scrollContainer instanceof HTMLElement && scrollContainer !== document.body && scrollContainer !== document.documentElement) {
-      const containerRect = scrollContainer.getBoundingClientRect();
-      const targetRect = targetEl.getBoundingClientRect();
-      const relativeTop = targetRect.top - containerRect.top + scrollContainer.scrollTop;
-      const targetScrollTop = relativeTop - topOffset;
-
-      this.smoothScrollTo(scrollContainer, Math.max(0, targetScrollTop), 250);
-    } else {
-      const targetRect = targetEl.getBoundingClientRect();
-      const targetScrollTop = targetRect.top + window.scrollY - topOffset;
-      this.smoothScrollTo(window, Math.max(0, targetScrollTop), 250);
+      this.programmaticScrollTimer = window.setTimeout(() => {
+        this.isProgrammaticScroll = false;
+      }, 600);
     }
   }
+
+
+
 
   private smoothScrollTo(
     container: HTMLElement | Window,

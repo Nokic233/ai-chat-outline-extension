@@ -15,22 +15,11 @@ export class GenericAdapter extends BaseAdapter {
       '.user-message',
       '.human-message',
       '[class*="user-query"]',
-      '[class*="UserMessage"]'
+      '[class*="UserMessage"]',
+      '[class*="user_message"]',
     ];
 
-    const elements: HTMLElement[] = [];
-    selectors.forEach(sel => {
-      const found = Array.from(document.querySelectorAll(sel)) as HTMLElement[];
-      found.forEach(el => {
-        if (!elements.includes(el) && el.innerText?.trim()) {
-          elements.push(el);
-        }
-      });
-    });
-
-    return elements.map((el, idx) => {
-      const text = el.innerText || el.textContent || '';
-      return this.createQuestionItem(el, text, idx);
-    });
+    return this.extractQuestionItemsFromSelectors(selectors);
   }
 }
+
