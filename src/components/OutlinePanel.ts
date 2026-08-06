@@ -13,6 +13,9 @@ export class OutlinePanel {
   private programmaticScrollTimer?: number;
 
   private handleScrollBound: (e: Event) => void;
+  private themeObserver?: MutationObserver;
+  private mediaQueryList?: MediaQueryList;
+  private handleThemeChangeBound: () => void;
 
   constructor(adapter: ChatAdapter) {
     this.adapter = adapter;
@@ -33,6 +36,10 @@ export class OutlinePanel {
     this.handleScrollBound = this.handleScroll.bind(this);
     window.addEventListener('scroll', this.handleScrollBound, { capture: true, passive: true });
 
+    // 绑定并开启主题变更监听
+    this.handleThemeChangeBound = () => this.syncTheme();
+    this.setupThemeObserver();
+
     this.render();
   }
 
@@ -42,6 +49,7 @@ export class OutlinePanel {
   }
 
   public updateItems(scannedItems: QuestionItem[]): void {
+    this.syncTheme();
     const prevItemsLength = this.items.length;
 
     if (scannedItems.length > 0) {
@@ -63,6 +71,50 @@ export class OutlinePanel {
     } else if (prevActiveIndex !== this.activeIndex) {
       // 仅仅是激活索引改变，做增量 DOM class 切换
       this.updateActiveHighlight();
+    }
+  }
+
+  public syncTheme(): void {
+    const root = this.shadowRoot.querySelector('.outline-root') as HTMLElement;
+    if (!root) return;
+
+    const isDark = this.adapter.isDarkMode?.() ?? false;
+    const targetClass = `outline-root ${isDark ? 'dark' : 'light'}`;
+    if (root.className !== targetClass) {
+      root.className = targetClass;
+    }
+  }
+
+  private themePollTimer?: number;
+
+  private setupThemeObserver(): void {
+    try {
+      this.themeObserver = new MutationObserver(() => {
+        this.syncTheme();
+      });
+
+      const targets = [document.documentElement, document.body].filter(Boolean);
+      targets.forEach((target) => {
+        this.themeObserver?.observe(target, {
+          attributes: true,
+          attributeFilter: ['class', 'data-theme', 'theme', 'style'],
+        });
+      });
+
+      if (window.matchMedia) {
+        this.mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
+        this.mediaQueryList.addEventListener('change', this.handleThemeChangeBound);
+      }
+
+      // 监听同源/跨 Frame 触发的 LocalStorage storage 事件
+      window.addEventListener('storage', this.handleThemeChangeBound);
+
+      // 定时巡检 LocalStorage 与 DOM 物理背景色变动 (800ms 巡检一次，零性能损耗)
+      this.themePollTimer = window.setInterval(() => {
+        this.syncTheme();
+      }, 800);
+    } catch (e) {
+      // ignore
     }
   }
 
@@ -327,6 +379,16 @@ export class OutlinePanel {
 
   public destroy(): void {
     window.removeEventListener('scroll', this.handleScrollBound, { capture: true });
+    this.themeObserver?.disconnect();
+    if (this.mediaQueryList && this.handleThemeChangeBound) {
+      this.mediaQueryList.removeEventListener('change', this.handleThemeChangeBound);
+    }
+    if (this.handleThemeChangeBound) {
+      window.removeEventListener('storage', this.handleThemeChangeBound);
+    }
+    if (this.themePollTimer) {
+      clearInterval(this.themePollTimer);
+    }
     this.hostEl.remove();
   }
 }

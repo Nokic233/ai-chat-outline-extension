@@ -85,12 +85,210 @@ export abstract class BaseAdapter implements ChatAdapter {
     return () => observer.disconnect();
   }
 
+  protected getLocalStorageTheme(): 'dark' | 'light' | 'system' | null {
+    try {
+      if (!window.localStorage) return null;
+
+      // 1. 各平台精准 LocalStorage 映射规则
+      // Google Gemini: Bard-Color-Theme => Bard-Light-Theme | Bard-Dark-Theme
+      const bardTheme = localStorage.getItem('Bard-Color-Theme');
+      if (bardTheme) {
+        const lower = bardTheme.toLowerCase();
+        if (lower.includes('light')) return 'light';
+        if (lower.includes('dark')) return 'dark';
+      }
+
+      // 豆包 (Doubao): dbx-web-theme => light | system
+      const dbxTheme = localStorage.getItem('dbx-web-theme');
+      if (dbxTheme) {
+        const lower = dbxTheme.toLowerCase().replace(/"/g, '').trim();
+        if (lower === 'light') return 'light';
+        if (lower === 'dark') return 'dark';
+        if (lower === 'system') return 'system';
+      }
+
+      // Kimi: CUSTOM_THEME => "light" | "dark" | "system"
+      const kimiTheme = localStorage.getItem('CUSTOM_THEME');
+      if (kimiTheme) {
+        const lower = kimiTheme.toLowerCase().replace(/"/g, '').trim();
+        if (lower === 'light') return 'light';
+        if (lower === 'dark') return 'dark';
+        if (lower === 'system') return 'system';
+      }
+
+      // 腾讯元宝 (Yuanbao): yb_web_theme_mode => light | dark | system
+      const yuanbaoTheme = localStorage.getItem('yb_web_theme_mode');
+      if (yuanbaoTheme) {
+        const lower = yuanbaoTheme.toLowerCase().replace(/"/g, '').trim();
+        if (lower === 'light') return 'light';
+        if (lower === 'dark') return 'dark';
+        if (lower === 'system') return 'system';
+      }
+
+      // ChatGPT: theme => light | dark | system
+      const chatgptTheme = localStorage.getItem('theme');
+      if (chatgptTheme) {
+        const lower = chatgptTheme.toLowerCase().replace(/"/g, '').trim();
+        if (lower === 'light') return 'light';
+        if (lower === 'dark') return 'dark';
+        if (lower === 'system') return 'system';
+      }
+
+      // 2. 通用兜底列表（针对其它 AI 平台）
+      const priorityKeys = [
+        'color-scheme',
+        'color_scheme',
+        'theme-mode',
+        'theme_mode',
+        'ui-theme',
+        'ui_theme',
+        'user-theme',
+        'user_theme',
+        'mode',
+        'appearance',
+        'ark_theme',
+        'color_mode',
+      ];
+
+      for (const key of priorityKeys) {
+        const val = localStorage.getItem(key);
+        if (val) {
+          const lower = val.toLowerCase().replace(/"/g, '').trim();
+          if (lower === 'light' || lower.includes('light') || lower.includes('day')) return 'light';
+          if (lower === 'dark' || lower.includes('dark') || lower.includes('night')) return 'dark';
+          if (lower === 'system' || lower.includes('system')) return 'system';
+        }
+      }
+
+      // 3. 遍历解析 JSON 对象中的主题
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        const lowerKey = key.toLowerCase();
+        if (
+          lowerKey.includes('theme') ||
+          lowerKey.includes('mode') ||
+          lowerKey.includes('color') ||
+          lowerKey.includes('appearance')
+        ) {
+          const val = localStorage.getItem(key);
+          if (val) {
+            const lowerVal = val.toLowerCase();
+            if (/"(theme|mode|color_scheme|colorScheme|appearance)"\s*:\s*"(light|day)"/.test(lowerVal)) {
+              return 'light';
+            }
+            if (/"(theme|mode|color_scheme|colorScheme|appearance)"\s*:\s*"(dark|night)"/.test(lowerVal)) {
+              return 'dark';
+            }
+            if (/"(theme|mode|color_scheme|colorScheme|appearance)"\s*:\s*"(system)"/.test(lowerVal)) {
+              return 'system';
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  }
+
   isDarkMode(): boolean {
-    const htmlTheme = document.documentElement.getAttribute('data-theme') || document.documentElement.className;
-    const bodyTheme = document.body.className;
-    const isDarkClass = (str: string) => /dark/i.test(str);
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return isDarkClass(htmlTheme) || isDarkClass(bodyTheme) || prefersDark;
+    // 0. 优先尝试读取 AI 网页在 LocalStorage 中存放的主题配置
+    const localTheme = this.getLocalStorageTheme();
+    if (localTheme === 'light') return false;
+    if (localTheme === 'dark') return true;
+    if (localTheme === 'system') {
+      // 网页明确设为跟随系统，此时严格同步系统的 prefers-color-scheme
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    // 1. 严格 Class & Attribute 精准检查
+    const rootEls = [document.documentElement, document.body].filter(Boolean) as HTMLElement[];
+    for (const el of rootEls) {
+      const classList = Array.from(el.classList);
+      const dataTheme = (el.getAttribute('data-theme') || '').toLowerCase();
+      const themeAttr = (el.getAttribute('theme') || '').toLowerCase();
+
+      const hasDarkClass = classList.some((c) => c === 'dark' || c === 'dark-theme' || c === 'gmat-dark-theme');
+      const hasLightClass = classList.some((c) => c === 'light' || c === 'light-theme' || c === 'gmat-light-theme');
+
+      const isDarkAttr = dataTheme === 'dark' || themeAttr === 'dark';
+      const isLightAttr = dataTheme === 'light' || themeAttr === 'light';
+
+      if (hasLightClass || isLightAttr) return false;
+      if (hasDarkClass || isDarkAttr) return true;
+    }
+
+    // 2. 物理 RGB 颜色解析辅助函数
+    const parseRgb = (colorStr: string): { r: number; g: number; b: number } | null => {
+      if (!colorStr || colorStr === 'transparent' || colorStr === 'rgba(0, 0, 0, 0)') return null;
+      const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const r = parseInt(match[1], 10);
+        const g = parseInt(match[2], 10);
+        const b = parseInt(match[3], 10);
+        const a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+        if (a > 0.1) {
+          return { r, g, b };
+        }
+      }
+      return null;
+    };
+
+    // 视口物理坐标采样：直接测试视口中央及侧边的真实渲染 DOM 元素
+    const points = [
+      { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+      { x: Math.min(200, window.innerWidth - 20), y: 120 },
+      { x: Math.max(20, window.innerWidth - 200), y: 120 },
+    ];
+
+    for (const pt of points) {
+      try {
+        let el = document.elementFromPoint(pt.x, pt.y) as HTMLElement | null;
+        while (el && el !== document.documentElement) {
+          const bg = window.getComputedStyle(el).backgroundColor;
+          const color = parseRgb(bg);
+          if (color) {
+            const luminance = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+            return luminance < 140;
+          }
+          el = el.parentElement;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // 传统节点候选扫描
+    const candidates: (HTMLElement | null)[] = [
+      document.body,
+      document.documentElement,
+      document.querySelector('main'),
+      document.querySelector('#__next'),
+      document.querySelector('#app'),
+      document.querySelector('[role="main"]'),
+    ];
+
+    try {
+      const scrollContainer = this.getScrollContainer();
+      if (scrollContainer instanceof HTMLElement) {
+        candidates.push(scrollContainer);
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    for (const el of candidates) {
+      if (!el) continue;
+      const color = parseRgb(window.getComputedStyle(el).backgroundColor);
+      if (color) {
+        const luminance = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+        return luminance < 140;
+      }
+    }
+
+    // 3. 终极兜底：无 Class 且无法采样物理背景色时，跟随系统偏好
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 
   /**

@@ -16,30 +16,43 @@
   align-items: flex-end;
   gap: 8px;
   user-select: none;
+
+  /* 默认兜底为浅色模式变量 */
+  --bg-color: rgba(255, 255, 255, 0.88);
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --text-main: #1f2328;
+  --text-muted: #656d76;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --active-color: #1a73e8;
+  --active-bg: rgba(26, 115, 232, 0.08);
+  --dash-color: #c0c7d0;
 }
 
 /* 宿主深色模式 */
 .outline-root.dark {
-  --bg-color: #1e1f22;
-  --bg-hover: #2b2d31;
-  --text-main: #e3e5e8;
+  --bg-color: rgba(26, 27, 30, 0.88);
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --text-main: #f0f2f5;
   --text-muted: #949ba4;
-  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(255, 255, 255, 0.1);
   --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   --active-color: #4785ff;
+  --active-bg: rgba(71, 133, 255, 0.12);
   --dash-color: #4e5058;
 }
 
 /* 宿主浅色模式 */
 .outline-root.light {
-  --bg-color: #ffffff;
-  --bg-hover: #f2f3f5;
-  --text-main: #2e3338;
-  --text-muted: #747f8d;
+  --bg-color: rgba(255, 255, 255, 0.88);
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --text-main: #1f2328;
+  --text-muted: #656d76;
   --border-color: rgba(0, 0, 0, 0.08);
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
   --active-color: #1a73e8;
-  --dash-color: #b5bac1;
+  --active-bg: rgba(26, 115, 232, 0.08);
+  --dash-color: #c0c7d0;
 }
 
 /* 1. 折叠模式：短线指示器 */
@@ -54,8 +67,10 @@
   border-radius: 20px;
   box-shadow: var(--shadow);
   cursor: pointer;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .collapsed-bar:hover {
@@ -90,7 +105,8 @@
   box-shadow: var(--shadow);
   overflow: hidden;
   padding: 8px 6px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -146,7 +162,7 @@
 .list-item.active {
   color: var(--active-color);
   font-weight: 500;
-  background: rgba(71, 133, 255, 0.08);
+  background: var(--active-bg);
 }
 
 .item-text {
