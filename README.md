@@ -1,6 +1,6 @@
 # AI Chat Outline - 对话提问大纲导航 📌
 
-[![Version](https://img.shields.io/badge/version-1.0.15-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.0.16-blue.svg)](package.json)
 [![Built with WXT](https://img.shields.io/badge/built%20with-WXT-red.svg)](https://wxt.dev)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Browser Support](https://img.shields.io/badge/browser-Chrome%20%7C%20Firefox%20%7C%20Edge-orange.svg)](#)
