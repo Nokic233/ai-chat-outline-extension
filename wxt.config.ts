@@ -13,7 +13,6 @@ export default defineConfig({
       'https://*.kimi.com/*',
       'https://*.kimi.ai/*',
       'https://kimi.moonshot.cn/*',
-      'https://*.baichuan-ai.com/*',
       'https://yuanbao.tencent.com/*'
     ],
     browser_specific_settings: {

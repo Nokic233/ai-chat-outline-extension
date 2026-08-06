@@ -10,7 +10,6 @@ export default defineContentScript({
     'https://*.kimi.com/*',
     'https://*.kimi.ai/*',
     'https://kimi.moonshot.cn/*',
-    'https://*.baichuan-ai.com/*',
     'https://yuanbao.tencent.com/*'
   ],
   runAt: 'document_end',
