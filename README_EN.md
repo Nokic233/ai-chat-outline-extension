@@ -9,6 +9,11 @@
 
 **AI Chat Outline** is a lightweight, elegant, and efficient browser extension. It automatically extracts user prompts across popular AI platforms—such as **ChatGPT, Google Gemini, Kimi, Tencent Yuanbao, and Doubao**—and generates a floating, interactive outline panel on the side of the page. Click on any question in the outline to smoothly scroll and jump directly to that prompt!
 
+<p align="center">
+  <img src="assets/promo-banner-1.png" alt="AI Chat Outline Promo 1" width="100%" />
+  <img src="assets/promo-banner-2.png" alt="AI Chat Outline Promo 2" width="100%" />
+</p>
+
 ---
 
 ## 🌟 Key Features

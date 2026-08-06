@@ -9,6 +9,13 @@
 
 **AI Chat Outline** 是一款轻量、优雅且高效的浏览器扩展插件。它能够自动提取 **ChatGPT、Gemini、Kimi、腾讯元宝、豆包** 等主流 AI 平台对话中的用户提问，并在页面侧边实时生成交互式提问大纲。点击大纲项目即可瞬间平滑滚动定位至对应问题，让长对话浏览更轻松、导航更高效！
 
+> 💡 **“用 ChatGPT / Kimi 聊久了找不到之前问过啥？试试这款提问大纲导航插件，长对话也能像看电子书一样带目录！”**
+
+<p storm-align="center">
+  <img src="assets/promo-banner-1.png" alt="AI Chat Outline 宣传图 1" width="100%" />
+  <img src="assets/promo-banner-2.png" alt="AI Chat Outline 宣传图 2" width="100%" />
+</p>
+
 ---
 
 ## 🌟 核心特性
