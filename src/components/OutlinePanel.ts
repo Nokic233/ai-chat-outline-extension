@@ -9,8 +9,6 @@ export class OutlinePanel {
   private items: QuestionItem[] = [];
   private activeIndex: number = -1;
   private isExpanded: boolean = false;
-  private isPinned: boolean = false;
-  private filterKeyword: string = '';
   private isProgrammaticScroll: boolean = false;
   private programmaticScrollTimer?: number;
 
@@ -200,10 +198,6 @@ export class OutlinePanel {
       root.className = `outline-root ${this.adapter.isDarkMode?.() ? 'dark' : 'light'}`;
     }
 
-    const filteredItems = this.items.filter((item) =>
-      item.fullText.toLowerCase().includes(this.filterKeyword.toLowerCase())
-    );
-
     if (this.isExpanded) {
       root.innerHTML = `
         <div class="expanded-panel">
@@ -322,77 +316,6 @@ export class OutlinePanel {
     }
   }
 
-
-
-
-  private smoothScrollTo(
-    container: HTMLElement | Window,
-    targetTop: number,
-    duration: number = 250
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      const isWindow = container === window || container === document.body || container === document.documentElement;
-      const getScrollTop = () => (isWindow ? window.scrollY : (container as HTMLElement).scrollTop);
-      const setScrollTop = (val: number) => {
-        if (isWindow) {
-          window.scrollTo({ top: val, behavior: 'auto' });
-        } else {
-          (container as HTMLElement).scrollTop = val;
-        }
-      };
-
-      const startTop = getScrollTop();
-      const change = targetTop - startTop;
-
-      if (Math.abs(change) < 5) {
-        setScrollTop(targetTop);
-        resolve();
-        return;
-      }
-
-      const startTime = performance.now();
-
-      const animateScroll = (now: number) => {
-        const elapsed = now - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-
-        setScrollTop(startTop + change * ease);
-
-        if (progress < 1) {
-          requestAnimationFrame(animateScroll);
-        } else {
-          resolve();
-        }
-      };
-
-      requestAnimationFrame(animateScroll);
-    });
-  }
-
-  private highlightElement(el: HTMLElement): void {
-    el.classList.remove('ai-outline-highlight');
-    void el.offsetWidth; // force reflow
-    el.classList.add('ai-outline-highlight');
-    setTimeout(() => {
-      el.classList.remove('ai-outline-highlight');
-    }, 1000);
-  }
-
-  private copyAsMarkdown(): void {
-    if (this.items.length === 0) return;
-    const md = this.items.map((item, idx) => `${idx + 1}. ${item.fullText}`).join('\n\n');
-    navigator.clipboard.writeText(md).then(() => {
-      const copyBtn = this.shadowRoot.querySelector('.copy-btn');
-      if (copyBtn) {
-        copyBtn.textContent = '✅';
-        setTimeout(() => {
-          copyBtn.textContent = '📋';
-        }, 1500);
-      }
-    });
-  }
-
   private escapeHtml(str: string): string {
     return str
       .replace(/&/g, '&amp;')
@@ -407,4 +330,5 @@ export class OutlinePanel {
     this.hostEl.remove();
   }
 }
+
 

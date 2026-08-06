@@ -17,18 +17,27 @@ export default defineContentScript({
   ],
   runAt: 'document_end',
   main() {
-    console.log('[AI Chat Outline] Content Script injected on', window.location.href);
+    console.log('[AI Chat Outline] Script initialized on', window.location.href);
 
     let adapter = getAdapterForUrl(window.location.href);
     let panel: OutlinePanel | null = null;
+    let unobserve: (() => void) | null = null;
+
+    const setupObserver = () => {
+      if (unobserve) {
+        unobserve();
+      }
+      adapter = getAdapterForUrl(window.location.href);
+      unobserve = adapter.observe(() => {
+        syncOutline();
+      });
+    };
 
     const syncOutline = () => {
-      const currentAdapter = getAdapterForUrl(window.location.href);
-      const items = currentAdapter.getUserMessages();
-      console.log(`[AI Chat Outline] [${currentAdapter.name}] Found ${items.length} question items.`);
+      const items = adapter.getUserMessages();
       if (items.length > 0) {
         if (!panel) {
-          panel = new OutlinePanel(currentAdapter);
+          panel = new OutlinePanel(adapter);
         }
         panel.updateItems(items);
       } else if (panel) {
@@ -36,24 +45,24 @@ export default defineContentScript({
       }
     };
 
-    // 初次加载延迟执行，确保 AI 聊天 DOM 元素已渲染完成
-    setTimeout(syncOutline, 800);
-    setTimeout(syncOutline, 2000);
+    // 绑定初始 MutationObserver
+    setupObserver();
 
-    // 监听 DOM 变化以应对 AJAX / SSE / 切换会话
-    adapter.observe(() => {
-      syncOutline();
-    });
+    // 延时触发初次同步，确保 DOM 完全加载
+    setTimeout(syncOutline, 600);
+    setTimeout(syncOutline, 1800);
 
-    // 监听 History API 切换 URL 页面
+    // 监听 SPA 路由 URL 变更
     let lastUrl = location.href;
-    const urlCheckInterval = setInterval(() => {
+    setInterval(() => {
       if (location.href !== lastUrl) {
         lastUrl = location.href;
         panel?.resetCache();
+        setupObserver();
         setTimeout(syncOutline, 500);
       }
     }, 1000);
   }
 });
+
 
