@@ -10,7 +10,8 @@ export default defineContentScript({
     'https://*.kimi.com/*',
     'https://*.kimi.ai/*',
     'https://kimi.moonshot.cn/*',
-    'https://yuanbao.tencent.com/*'
+    'https://yuanbao.tencent.com/*',
+    'https://*.yuanbao.tencent.com/*'
   ],
   runAt: 'document_end',
   main() {
@@ -22,6 +23,7 @@ export default defineContentScript({
     const syncOutline = () => {
       const currentAdapter = getAdapterForUrl(window.location.href);
       const items = currentAdapter.getUserMessages();
+      console.log(`[AI Chat Outline] [${currentAdapter.name}] Found ${items.length} question items.`);
       if (items.length > 0) {
         if (!panel) {
           panel = new OutlinePanel(currentAdapter);

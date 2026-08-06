@@ -2,12 +2,14 @@ import { ChatAdapter } from '../types';
 import { GeminiAdapter } from './gemini';
 import { ChatGPTAdapter } from './chatgpt';
 import { KimiAdapter } from './kimi';
+import { YuanbaoAdapter } from './yuanbao';
 import { GenericAdapter } from './generic';
 
 const adapters: ChatAdapter[] = [
   new GeminiAdapter(),
   new ChatGPTAdapter(),
   new KimiAdapter(),
+  new YuanbaoAdapter(),
   new GenericAdapter(),
 ];
 

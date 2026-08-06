@@ -13,7 +13,8 @@ export default defineConfig({
       'https://*.kimi.com/*',
       'https://*.kimi.ai/*',
       'https://kimi.moonshot.cn/*',
-      'https://yuanbao.tencent.com/*'
+      'https://yuanbao.tencent.com/*',
+      'https://*.yuanbao.tencent.com/*'
     ],
     browser_specific_settings: {
       gecko: {
