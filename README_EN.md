@@ -41,9 +41,9 @@
 
 Search and install **AI Chat Outline** directly from official web stores:
 
-- **Chrome Web Store** (Coming soon / Publishing)
-- **Microsoft Edge Add-ons** (Coming soon / Publishing)
-- **Firefox Add-ons** (Coming soon / Publishing)
+- **[Chrome Web Store](https://chromewebstore.google.com/detail/ai-chat-outline-%E5%AF%B9%E8%AF%9D%E6%8F%90%E9%97%AE%E5%A4%A7%E7%BA%B2%E5%AF%BC%E8%88%AA/ikakhieblloblndknmfgnefpncbdjbhh)**
+- **[Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/ai-chat-outline-%E5%AF%B9%E8%AF%9D%E6%8F%90%E9%97%AE%E5%A4%A7%E7%BA%B2%E5%AF%BC%E8%88%AA)**
+- **Microsoft Edge Add-ons** (Coming soon)
 
 ### Option 2: Developer Mode (Offline Installation)
 

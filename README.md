@@ -41,9 +41,9 @@
 
 你可以直接前往对应的浏览器扩展商店搜寻并安装 **AI Chat Outline**：
 
-- **Chrome Web Store**（即将上架/升级中）
-- **Microsoft Edge Add-ons**（即将上架/升级中）
-- **Firefox Add-ons**（即将上架/升级中）
+- **[Chrome Web Store](https://chromewebstore.google.com/detail/ai-chat-outline-%E5%AF%B9%E8%AF%9D%E6%8F%90%E9%97%AE%E5%A4%A7%E7%BA%B2%E5%AF%BC%E8%88%AA/ikakhieblloblndknmfgnefpncbdjbhh)**
+- **[Firefox Add-ons](https://addons.mozilla.org/zh-CN/firefox/addon/ai-chat-outline-%E5%AF%B9%E8%AF%9D%E6%8F%90%E9%97%AE%E5%A4%A7%E7%BA%B2%E5%AF%BC%E8%88%AA)**
+- **Microsoft Edge Add-ons**（即将上架）
 
 ### 方式二：开发者模式安装（离线安装）
 
