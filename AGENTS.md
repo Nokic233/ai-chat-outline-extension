@@ -164,3 +164,20 @@ const adapters: ChatAdapter[] = [
 6. **域名同步更新规则**: 只要修改或新增了支持的 AI 网站适配器，**必须同时**更新 `wxt.config.ts` (`host_permissions`) 和 `entrypoints/content.ts` (`matches`)，确保权限与匹配统一。
 7. **Git Commit 规范**: 项目遵循中文 Commit Message 规范，格式推荐使用 `feat: ...` / `fix: ...` / `docs: ...` 加中文说明。
 
+---
+
+## 8. Agent Skills (Matt Pocock Skills 配置)
+
+### Issue tracker
+
+GitHub Issues via `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical 5-role triage label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (`CONTEXT.md` + `docs/adr/`). See `docs/agents/domain.md`.
+
+
