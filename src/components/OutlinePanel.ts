@@ -115,6 +115,15 @@ export class OutlinePanel {
       this.items = [...scannedItems];
     }
 
+    // 全局去重护航：过滤连续相同的 fullText 项，防止 UI 重复
+    const uniqueItems: QuestionItem[] = [];
+    this.items.forEach((item) => {
+      if (uniqueItems.length === 0 || uniqueItems[uniqueItems.length - 1].fullText !== item.fullText) {
+        uniqueItems.push(item);
+      }
+    });
+    this.items = uniqueItems;
+
     this.items.forEach((item, idx) => {
       item.index = idx;
     });

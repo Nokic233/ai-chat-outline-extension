@@ -30,11 +30,9 @@ export class YuanbaoAdapter extends BaseAdapter {
 
   getUserMessages(): QuestionItem[] {
     const selectors = [
-      // 腾讯元宝专用与通用用户气泡/消息选择器
+      // 优先精准匹配用户侧整体气泡容器
       '[class*="agent-chat__bubble--user"]',
       '[class*="agent-chat__bubble-user"]',
-      '[class*="agent-chat__bubble"][class*="user"]',
-      '[class*="agent-chat__bubble"][class*="right"]',
       '.agent-chat__bubble--user',
       '[class*="user-bubble"]',
       '[class*="user_bubble"]',
@@ -46,14 +44,9 @@ export class YuanbaoAdapter extends BaseAdapter {
       '[class*="userMessage"]',
       '[class*="user_message"]',
       '[class*="user-query"]',
-      '[class*="userQuery"]',
-      '[class*="user-content"]',
-      '[class*="userContent"]',
       '[class*="human-message"]',
       '[data-role="user"]',
-      '[data-author="user"]',
-      '[data-user="true"]',
-      '[data-is-user="true"]'
+      '[data-author="user"]'
     ];
 
     let elements: HTMLElement[] = [];
@@ -66,10 +59,10 @@ export class YuanbaoAdapter extends BaseAdapter {
       });
     });
 
-    // 智能降级搜索：如果精确选择器没提取到节点，遍历所有气泡/消息容器
+    // 智能降级搜索：仅在精准选择器没匹配到任何节点时使用
     if (elements.length === 0) {
       const candidates = Array.from(
-        document.querySelectorAll('div[class*="bubble"], div[class*="message"], div[class*="item"], div[class*="chat-record"]')
+        document.querySelectorAll('div[class*="bubble"], div[class*="message"], div[class*="chat-record"]')
       ) as HTMLElement[];
 
       candidates.forEach(el => {
@@ -81,15 +74,13 @@ export class YuanbaoAdapter extends BaseAdapter {
           cls.includes('human') || 
           cls.includes('query') || 
           cls.includes('question') || 
-          cls.includes('right') || 
           dataRole === 'user';
 
         const isBotSide = 
           cls.includes('assistant') || 
           cls.includes('bot') || 
           cls.includes('system') || 
-          cls.includes('agent-chat__bubble--ai') || 
-          cls.includes('agent-chat__bubble--bot');
+          cls.includes('ai');
 
         if (isUserSide && !isBotSide && el.innerText?.trim()) {
           if (!elements.includes(el)) {
@@ -99,17 +90,31 @@ export class YuanbaoAdapter extends BaseAdapter {
       });
     }
 
-    // 过滤父节点，去重防嵌套
+    // 1. 精确防嵌套去重：如果有任何其他被选中的元素包含该元素，则该元素为内层子节点，予以剔除
     const validElements = elements.filter(el => {
-      const parent = el.parentElement?.closest(selectors.join(','));
-      return !parent;
+      // 过滤隐藏节点
+      if (el.offsetParent === null && getComputedStyle(el).display === 'none') {
+        return false;
+      }
+      const isChild = elements.some(other => other !== el && other.contains(el));
+      return !isChild;
     });
 
     const items: QuestionItem[] = [];
+    const ignoreKeywords = [
+      '内容由ai生成',
+      '仅供参考',
+      '由 ai 生成',
+      '免责声明',
+      '下载元宝',
+      '换一换'
+    ];
 
-    validElements.forEach((el, idx) => {
-      // 提取纯文本节点
-      const textEl = (el.querySelector('.hyc-content-text, [class*="content-text"], [class*="user-content"], [class*="text"]') as HTMLElement) || el;
+    let lastText = '';
+
+    validElements.forEach((el) => {
+      // 2. 提取气泡内的提问纯文本
+      const textEl = (el.querySelector('.hyc-content-text, [class*="content-text"], [class*="user-content"]') as HTMLElement) || el;
       
       const clone = textEl.cloneNode(true) as HTMLElement;
       const removeSelectors = [
@@ -125,10 +130,24 @@ export class YuanbaoAdapter extends BaseAdapter {
         clone.querySelectorAll(s).forEach(node => node.remove());
       });
 
-      const text = clone.innerText || clone.textContent || '';
-      if (text.trim()) {
-        items.push(this.createQuestionItem(el, text, idx));
+      let text = (clone.innerText || clone.textContent || '').trim();
+      text = text.replace(/\s+/g, ' ');
+
+      if (!text) return;
+
+      // 3. 过滤系统提示词/免责短语
+      const lowerText = text.toLowerCase();
+      if (ignoreKeywords.some(kw => lowerText.includes(kw))) {
+        return;
       }
+
+      // 4. 连续相同提问去重（解决页面镜像节点/视图渲染导致的双重问题）
+      if (text === lastText) {
+        return;
+      }
+
+      lastText = text;
+      items.push(this.createQuestionItem(el, text, items.length));
     });
 
     return items;
