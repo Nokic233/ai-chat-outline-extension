@@ -1,5 +1,7 @@
 # AI Chat Outline - 对话提问大纲导航 📌
 
+[简体中文](README.md) | [English](README_EN.md)
+
 [![Version](https://img.shields.io/github/package-json/v/Nokic233/ai-chat-outline-extension?color=blue)](package.json)
 [![Built with WXT](https://img.shields.io/badge/built%20with-WXT-red.svg)](https://wxt.dev)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
