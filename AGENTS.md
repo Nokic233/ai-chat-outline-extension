@@ -82,7 +82,7 @@ sequenceDiagram
 若需要为新的 AI 网站添加提问大纲支持，请按如下步骤操作：
 
 ### 步骤 1: 创建 Adapter 文件 (`src/adapters/xxx.ts`)
-继承 `BaseAdapter` 并实现抽象方法：
+继承 `BaseAdapter` 并实现抽象方法。可直接利用基类提供的 `extractQuestionItemsFromSelectors` 模版方法，或根据网页特点覆写 `scrollToQuestion`：
 
 ```typescript
 import { BaseAdapter } from './base';
@@ -96,19 +96,23 @@ export class NewPlatformAdapter extends BaseAdapter {
   }
 
   getUserMessages(): QuestionItem[] {
-    const items: QuestionItem[] = [];
-    // 找出目标网页中包含用户提问的 DOM 节点
-    const userNodes = document.querySelectorAll('.user-message-selector');
-    
-    userNodes.forEach((node, index) => {
-      const rawText = node.textContent || '';
-      if (rawText.trim()) {
-        // 使用基类继承的 createQuestionItem，会自动清洗前缀及长文本截断
-        items.push(this.createQuestionItem(node as HTMLElement, rawText, index));
-      }
-    });
+    const selectors = [
+      '.user-message-selector',
+      '[data-role="user"]'
+    ];
 
-    return items;
+    // 利用基类下沉的模版方法，自动完成最外层节点去重与按钮/工具栏噪点清理
+    return this.extractQuestionItemsFromSelectors(selectors);
+  }
+
+  // 可选：如果目标网页有特殊的滚动逻辑（如极端虚拟列表回收），可重写 scrollToQuestion
+  override async scrollToQuestion(
+    item: QuestionItem,
+    allItems: QuestionItem[],
+    prevActiveIndex: number
+  ): Promise<void> {
+    // 专属定位算法实现...
+    await super.scrollToQuestion(item, allItems, prevActiveIndex);
   }
 }
 ```
@@ -153,7 +157,10 @@ const adapters: ChatAdapter[] = [
 ## 7. Agent 编码注意事项与规范 (Guidelines for AI Agents)
 
 1. **样式隔离保障**: `OutlinePanel` 使用 **Shadow DOM** (`attachShadow({ mode: 'open' })`) 隔离样式。所有 UI 修改或新组件均需在 Shadow DOM 内部构造，切勿将全局 CSS 注入外部宿主页面。
-2. **选择器容错性**: AI 对话网站的 CSS 类名常被混淆或动态变更，提取元素时优先使用 `data-testid`、`role`、`aria-label` 或相对 DOM 深度遍历，避免强依赖极易失效的混淆 class。
-3. **滚动容器兼容**: 滚动定位使用 `BaseAdapter.getScrollContainer()` 自动探测，优先使用 `element.scrollIntoView({ behavior: 'smooth', block: 'start' })` 或动态查找父级可滚动区域。
-4. **域名同步更新规则**: 只要修改或新增了支持的 AI 网站适配器，**必须同时**更新 `wxt.config.ts` (`host_permissions`) 和 `entrypoints/content.ts` (`matches`)，确保权限与匹配统一。
-5. **Git Commit 规范**: 项目遵循中文 Commit Message 规范，格式推荐使用 `feat: ...` / `fix: ...` / `docs: ...` 加中文说明。
+2. **跳转定位架构隔离**: 平台特有的跳转定位策略（如虚拟列表回收探路、局部 scroll 视图定位）**必须完全内聚在专属 Adapter 中**（通过重写 `scrollToQuestion`），切勿在通用 `OutlinePanel` 中硬编码特定平台的特殊分支逻辑。
+3. **基类公共工具复用**: 开发/重构 Adapter 时，优先使用 `BaseAdapter` 提供的 `findUserNodes`（防嵌套去重）、`cleanNodeText`（噪点清理）及 `extractQuestionItemsFromSelectors` 工具函数。
+4. **选择器容错性**: AI 对话网站的 CSS 类名常被混淆或动态变更，提取元素时优先使用 `data-testid`、`role`、`aria-label` 或相对 DOM 深度遍历，避免强依赖极易失效的混淆 class。
+5. **滚动容器兼容**: 滚动定位优先使用 `BaseAdapter.getScrollContainer()` 自动探测，或在 Adapter 中专属指定，并优先结合原生 `element.scrollIntoView({ behavior: 'smooth', block: 'start' })`。
+6. **域名同步更新规则**: 只要修改或新增了支持的 AI 网站适配器，**必须同时**更新 `wxt.config.ts` (`host_permissions`) 和 `entrypoints/content.ts` (`matches`)，确保权限与匹配统一。
+7. **Git Commit 规范**: 项目遵循中文 Commit Message 规范，格式推荐使用 `feat: ...` / `fix: ...` / `docs: ...` 加中文说明。
+
