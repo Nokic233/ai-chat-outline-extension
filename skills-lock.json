@@ -7,6 +7,12 @@
       "skillPath": "skills/engineering/ask-matt/SKILL.md",
       "computedHash": "b2e8ef5ffc2f142022c1e1e1bba68073f0821356a8e1cf1b23670f61d13fe50b"
     },
+    "baoyu-xhs-images": {
+      "source": "jimliu/baoyu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/baoyu-xhs-images/SKILL.md",
+      "computedHash": "e72f5920b91ded0902b83fd867497ba15aad072e38d3f78e032397e3170d72bb"
+    },
     "claude-handoff": {
       "source": "mattpocock/skills",
       "sourceType": "github",
